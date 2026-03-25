@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard | Chemistry Arcade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        #sidebar { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+    <div class="flex min-h-screen relative overflow-x-hidden">
+        <div id="sidebarOverlay" onclick="toggleSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden md:hidden"></div>
+
+        <aside id="sidebar" class="bg-slate-900 text-white w-64 flex-shrink-0 flex flex-col z-50 fixed inset-y-0 left-0 -translate-x-full md:translate-x-0 h-screen">
+            <div class="p-6 flex items-center justify-between">
+                <h1 class="text-xl font-black tracking-tighter text-blue-400 uppercase">Teacher Portal</h1>
+                <button onclick="toggleSidebar()" class="md:hidden text-slate-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <nav class="flex-1 px-4 space-y-2 mt-4 overflow-y-auto no-scrollbar">
+                <a href="/teacher/dashboard" class="flex items-center gap-3 p-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-900/50">
+                    <i class="fas fa-chart-pie w-5 text-emerald-400"></i> Dashboard
+                </a>
+                <a href="/teacher/classes" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 transition text-slate-400 hover:text-white">
+                    <i class="fas fa-chalkboard-user w-5 text-orange-500"></i> <span class="font-semibold">My Classes</span>
+                </a>
+                <a href="/teacher/question-bank" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 transition text-slate-400 hover:text-white">
+                    <i class="fas fa-database w-5 text-red-500"></i> <span class="font-semibold">Question Bank</span>
+                </a>
+                <a href="/teacher/forums" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 transition text-slate-400 hover:text-white">
+                    <i class="fas fa-comments w-5 text-blue-500"></i> <span class="font-semibold">Forums</span>
+                </a>
+                <a href="/teacher/reports" class="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800 transition text-slate-400 hover:text-white">
+                    <i class="fas fa-file-export w-5 text-yellow-500"></i> <span class="font-semibold">Reports</span>
+                </a>
+            </nav>
+
+            <div class="p-4 border-t border-slate-800">
+                <a href="/logout" class="flex items-center gap-3 p-3 rounded-xl text-red-400 hover:bg-red-500/10 transition group font-bold">
+                    <i class="fas fa-right-from-bracket w-5"></i> Log Out
+                </a>
+            </div>
+        </aside>
+
+        <main id="mainContent" class="flex-1 flex flex-col min-w-0 md:ml-64 h-screen overflow-hidden">
+            
+            <header class="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 md:px-8 fixed top-0 left-0 right-0 md:left-64 z-50">
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleSidebar()" class="p-2 rounded-lg hover:bg-slate-100 text-slate-600 md:hidden">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h2 class="text-lg font-bold text-slate-800 hidden sm:block">Welcome, Prof. <%= user.last_name %>!</h2>
+                </div>
+
+                <div class="flex items-center gap-3 md:gap-6">
+                    <div class="relative group cursor-pointer p-2 hover:bg-slate-100 rounded-full transition">
+                        <i class="far fa-bell text-xl text-slate-600"></i>
+                        <span class="absolute top-2 right-2 flex h-2.5 w-2.5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 pl-4 border-l border-slate-200">
+                        <div class="text-right hidden lg:block">
+                            <p class="text-sm font-bold text-slate-800"><%= user.first_name %> <%= user.last_name %></p>
+                            <p class="text-[10px] uppercase font-bold text-blue-500 tracking-widest">Instructor</p>
+                        </div>
+                        <img src="/profile_uploads/<%= user.profile_pic || 'default_avatar.png' %>" class="w-10 h-10 rounded-xl object-cover ring-2 ring-blue-100">
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto mt-20 p-4 md:p-8 no-scrollbar pb-24">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
+                                <i class="fas fa-users-rectangle text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Total Students</p>
+                                <h3 class="text-2xl font-black text-slate-800"><%= stats.totalStudents || 0 %></h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                <i class="fas fa-graduation-cap text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Active Classes</p>
+                                <h3 class="text-2xl font-black text-slate-800"><%= classes.length %></h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
+                                <i class="fas fa-comments text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Forums</p>
+                                <h3 class="text-2xl font-black text-slate-800"><%= forumActivity ? forumActivity.length : 0 %></h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600">
+                                <i class="fas fa-gamepad text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Attempts</p>
+                                <h3 class="text-2xl font-black text-slate-800"><%= stats.totalAttempts || 0 %></h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <div class="lg:col-span-2 space-y-8">
+                        <section>
+                            <div class="flex justify-between items-end mb-4">
+                                <h2 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                                    <i class="fas fa-book-bookmark text-blue-500"></i> Active Subjects
+                                </h2>
+                                <button class="text-xs font-bold text-blue-600 hover:underline">See all classes</button>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <% classes.forEach(cls => { %>
+                                <div class="bg-white rounded-3xl border border-slate-200 overflow-hidden hover:border-blue-300 transition-all group">
+                                    <div class="h-24 bg-slate-100 relative">
+                                        <img src="/profile_uploads/<%= cls.subject_image || 'default_subject.png' %>" class="w-full h-full object-cover opacity-60">
+                                        <div class="absolute bottom-2 left-4">
+                                            <span class="px-2 py-1 bg-white text-[10px] font-bold rounded-md uppercase tracking-tighter shadow-sm"><%= cls.subject_code %></span>
+                                        </div>
+                                    </div>
+                                    <div class="p-4">
+                                        <h4 class="font-bold text-slate-800"><%= cls.subject_name %></h4>
+                                        <p class="text-[11px] text-slate-500">Section: <%= cls.class_name %> • <%= cls.student_count %> Students</p>
+                                        <a href="/teacher/class/<%= cls.class_id %>" class="mt-3 block w-full py-2 bg-slate-50 group-hover:bg-blue-600 group-hover:text-white text-center rounded-xl text-xs font-bold transition">View Class</a>
+                                    </div>
+                                </div>
+                                <% }) %>
+                            </div>
+                        </section>
+
+                        <section class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                            <h2 class="text-lg font-black text-slate-800 mb-4">Arcade Real-time Feed</h2>
+                            <div class="space-y-4">
+                                <% if(recentScores && recentScores.length > 0) { %>
+                                    <% recentScores.forEach(score => { %>
+                                    <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:shadow-md transition cursor-default">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-xs uppercase">
+                                                <%= score.first_name[0] %><%= score.last_name[0] %>
+                                            </div>
+                                            <div>
+                                                <p class="text-xs font-bold text-slate-800"><%= score.first_name %> <%= score.last_name %></p>
+                                                <p class="text-[10px] text-slate-500"><%= score.assessment_name %></p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-xs font-black text-blue-600">+<%= score.exp_gained %> EXP</p>
+                                            <p class="text-[10px] font-bold text-slate-400">Score: <%= score.score_obtained %></p>
+                                        </div>
+                                    </div>
+                                    <% }) %>
+                                <% } else { %>
+                                    <p class="text-center text-slate-400 py-4 text-xs font-medium italic">No recent activities found.</p>
+                                <% } %>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="space-y-8">
+                        
+                        <section class="bg-red-50/50 rounded-3xl border border-red-100 p-6">
+                            <h2 class="text-red-800 text-sm font-black uppercase mb-4 flex items-center gap-2">
+                                <i class="fas fa-triangle-exclamation text-red-500"></i> Needs Attention
+                            </h2>
+
+                            <div class="space-y-6">
+                                <% if(needsAttention && needsAttention.length > 0) { %>
+                                    
+                                    <% classes.forEach(cls => { %>
+                                        <% 
+                                            // Ginamit ang loose equality (==) para sa number vs string protection
+                                            const strugglingInThisClass = needsAttention.filter(s => s.subject_id == cls.subject_id); 
+                                        %>
+
+                                        <% if(strugglingInThisClass.length > 0) { %>
+                                            <div class="space-y-2">
+                                                <p class="text-[10px] font-bold text-red-400 uppercase tracking-widest px-1">
+                                                    <%= cls.subject_name %>
+                                                </p>
+                                                
+                                                <% strugglingInThisClass.forEach(s => { %>
+                                                    <div class="flex items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-red-50">
+                                                        <div class="flex flex-col">
+                                                            <span class="text-xs font-bold text-slate-700">
+                                                                <%= s.first_name %> <%= s.last_name %>
+                                                            </span>
+                                                        </div>
+                                                        <span class="text-[10px] px-2 py-1 bg-red-100 text-red-600 rounded-lg font-black">
+                                                            <%= s.progress_percent %>%
+                                                        </span>
+                                                    </div>
+                                                <% }) %>
+                                            </div>
+                                        <% } %>
+                                    <% }) %>
+
+                                <% } else { %>
+                                    <div class="py-4 text-center">
+                                        <p class="text-[11px] text-slate-500 italic">All students are performing well or no data available.</p>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </section>
+
+                        <section class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                            <h2 class="text-slate-800 text-sm font-black uppercase mb-4">Upcoming Due Dates</h2>
+                            <div class="space-y-4">
+                                <% if(pendingAssessments && pendingAssessments.length > 0) { %>
+                                    <% pendingAssessments.forEach(task => { %>
+                                    <div class="border-l-4 border-orange-400 pl-3 py-1">
+                                        <p class="text-xs font-bold text-slate-800"><%= task.assessment_name %></p>
+                                        <p class="text-[10px] text-slate-500">Due: <%= new Date(task.due_date).toLocaleDateString() %></p>
+                                    </div>
+                                    <% }) %>
+                                <% } else { %>
+                                    <p class="text-[11px] text-slate-500 italic">No pending assessments.</p>
+                                <% } %>
+                            </div>
+                        </section>
+
+                        <section class="bg-slate-900 rounded-3xl p-6 text-white shadow-xl shadow-slate-200">
+                            <h2 class="text-blue-400 text-sm font-black uppercase mb-4">Forum Activity</h2>
+                            <div class="space-y-4">
+                                <% if(forumActivity && forumActivity.length > 0) { %>
+                                    <% forumActivity.forEach(forum => { %>
+                                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                                        <p class="text-[11px] font-medium truncate w-40"><%= forum.title %></p>
+                                        <span class="text-[10px] bg-slate-800 px-2 py-1 rounded-md text-slate-300"><%= forum.reply_count %> replies</span>
+                                    </div>
+                                    <% }) %>
+                                <% } else { %>
+                                    <p class="text-[11px] text-slate-500 italic">No forum activity yet.</p>
+                                <% } %>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="h-20"></div>
+            </div>
+
+            <footer class="bg-white/50 border-t border-slate-200 py-4 px-8 fixed bottom-0 left-0 right-0 md:left-64 z-50">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-2">
+                    <p class="text-[11px] text-slate-500 font-medium">
+                        &copy; 2026 <span class="text-blue-600 font-bold">Mabini College</span> - Teacher Portal v2.4
+                    </p>
+                    <div class="flex gap-4">
+                        <a href="#" class="text-[11px] font-bold text-slate-400 hover:text-blue-600 transition uppercase tracking-widest">Support</a>
+                        <a href="#" class="text-[11px] font-bold text-slate-400 hover:text-blue-600 transition uppercase tracking-widest">System Logs</a>
+                    </div>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>

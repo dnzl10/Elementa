@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In-Game | Chemistry Arcade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+        
+        body { font-family: 'Orbitron', sans-serif; cursor: crosshair; transition: background 0.3s; }
+        
+        /* SCANLINE & CRT EFFECT */
+        body::before {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 100; background-size: 100% 4px, 3px 100%; pointer-events: none;
+        }
+
+        .neon-text-cyan { text-shadow: 0 0 15px rgba(6, 182, 212, 0.8); }
+        .neon-text-yellow { text-shadow: 0 0 15px rgba(234, 179, 8, 0.8); }
+        .floating { animation: floating 3s ease-in-out infinite; }
+        @keyframes floating { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        /* GLITCH ANIMATION */
+        @keyframes glitch {
+            0% { clip-path: inset(40% 0 61% 0); transform: translate(-10px, -5px); }
+            20% { clip-path: inset(92% 0 1% 0); transform: translate(10px, 5px); }
+            40% { clip-path: inset(43% 0 1% 0); transform: translate(-10px, -5px); }
+            60% { clip-path: inset(25% 0 58% 0); transform: translate(10px, 5px); }
+            100% { clip-path: inset(58% 0 43% 0); transform: translate(0); }
+        }
+        .glitch-active { animation: glitch 0.2s infinite; filter: hue-rotate(90deg) saturate(200%); }
+        
+        .correct-glow { box-shadow: 0 0 50px rgba(34, 197, 94, 0.4); border-color: #22c55e !important; }
+        .wrong-glow { box-shadow: 0 0 50px rgba(239, 68, 68, 0.4); border-color: #ef4444 !important; }
+        
+        .choice-btn:hover { box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); border-color: #06b6d4; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen flex flex-col items-center p-6 overflow-hidden">
+
+    <div class="w-full max-w-6xl flex justify-between items-end mb-8 z-10 animate__animated animate__fadeInDown">
+        <div class="flex flex-col">
+            <span class="text-cyan-400 font-black tracking-widest uppercase text-xs">Mission Progress</span>
+            <div class="text-5xl font-black italic"><span id="current-idx">1</span><span class="text-slate-600 text-2xl">/</span><span id="total-idx" class="text-3xl">15</span></div>
+        </div>
+        
+        <div class="relative flex items-center justify-center scale-110">
+            <div id="timer-display" class="text-4xl font-black text-white neon-text-cyan">15</div>
+            <svg class="absolute w-28 h-28 rotate-[-90deg]">
+                <circle cx="56" cy="56" r="48" stroke="currentColor" stroke-width="4" fill="transparent" class="text-slate-800"></circle>
+                <circle id="timer-bar" cx="56" cy="56" r="48" stroke="currentColor" stroke-width="6" fill="transparent" class="text-cyan-500 transition-all duration-1000" stroke-dasharray="301.5" stroke-dashoffset="0" stroke-linecap="round"></circle>
+            </svg>
+        </div>
+
+        <div class="text-right">
+            <span class="text-yellow-400 font-black tracking-widest uppercase text-xs">Total EXP</span>
+            <div id="exp-display" class="text-5xl font-black italic text-yellow-500 neon-text-yellow">0</div>
+        </div>
+    </div>
+
+    <div id="game-card" class="w-full max-w-4xl bg-slate-900/60 border-2 border-slate-700 rounded-[3rem] p-12 backdrop-blur-xl relative shadow-2xl floating z-10">
+        <div id="difficulty-badge" class="absolute -top-4 left-1/2 -translate-x-1/2 px-6 py-1 bg-cyan-600 text-white text-[10px] font-black rounded-full uppercase tracking-[0.3em]">MEDIUM</div>
+
+        <div class="text-center mb-16">
+            <h1 id="question-text" class="text-3xl font-bold leading-tight drop-shadow-md">Loading System...</h1>
+        </div>
+
+        <div id="mcq-container" class="grid grid-cols-2 gap-6 hidden">
+            <div class="choice-btn cursor-pointer p-6 bg-slate-800/50 border-2 border-slate-700 rounded-3xl flex items-center gap-6 transition-all hover:scale-105 active:scale-95" onclick="handleInput('1')">
+                <div class="w-12 h-12 bg-cyan-500 text-slate-950 font-black rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">1</div>
+                <span id="opt-a" class="text-xl font-medium tracking-wide"></span>
+            </div>
+            <div class="choice-btn cursor-pointer p-6 bg-slate-800/50 border-2 border-slate-700 rounded-3xl flex items-center gap-6 transition-all hover:scale-105 active:scale-95" onclick="handleInput('2')">
+                <div class="w-12 h-12 bg-cyan-500 text-slate-950 font-black rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">2</div>
+                <span id="opt-b" class="text-xl font-medium tracking-wide"></span>
+            </div>
+            <div class="choice-btn cursor-pointer p-6 bg-slate-800/50 border-2 border-slate-700 rounded-3xl flex items-center gap-6 transition-all hover:scale-105 active:scale-95" onclick="handleInput('3')">
+                <div class="w-12 h-12 bg-cyan-500 text-slate-950 font-black rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">3</div>
+                <span id="opt-c" class="text-xl font-medium tracking-wide"></span>
+            </div>
+            <div class="choice-btn cursor-pointer p-6 bg-slate-800/50 border-2 border-slate-700 rounded-3xl flex items-center gap-6 transition-all hover:scale-105 active:scale-95" onclick="handleInput('4')">
+                <div class="w-12 h-12 bg-cyan-500 text-slate-950 font-black rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">4</div>
+                <span id="opt-d" class="text-xl font-medium tracking-wide"></span>
+            </div>
+        </div>
+
+        <div id="periodic-container" class="flex flex-col items-center hidden">
+            <div class="bg-black/40 p-8 rounded-3xl border border-cyan-500/20 mb-6">
+                <div id="formula-slots" class="flex gap-4 min-h-[90px] items-center"></div>
+            </div>
+            <p class="text-cyan-500/50 text-xs font-black uppercase italic tracking-[0.4em] animate-pulse">Waiting for physical periodic table input</p>
+        </div>
+    </div>
+
+    <div id="combo-tag" class="fixed top-1/2 left-10 -translate-y-1/2 hidden z-50">
+        <h2 class="text-8xl font-black italic text-yellow-400 neon-text-yellow animate__animated animate__bounceInLeft"><span id="combo-val">3</span>X COMBO</h2>
+    </div>
+
+    <script>
+        const questions = <%- JSON.stringify(questions) %>;
+        const userData = <%- JSON.stringify(user) %>;
+        
+        let currentIndex = 0;
+        let currentScore = 0;
+        let totalExp = 0;
+        let comboCount = 0;
+        let timer;
+        let timeLeft = 0;
+        let isPaused = false;
+        let selectedElements = [];
+
+        // --- SOUND ENGINE ---
+        const sfx = {
+            btn: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'], volume: 0.3 }),
+            correct: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'], volume: 0.5 }),
+            wrong: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3'], volume: 0.4 }),
+            glitch: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3'], volume: 0.6 }),
+            timerLow: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/959/959-preview.mp3'], volume: 0.2, loop: true }),
+            complete: new Howl({ src: ['https://assets.mixkit.co/active_storage/sfx/1431/1431-preview.mp3'], volume: 0.6 }),
+            bgm: new Howl({ src: ['https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3'], volume: 0.15, loop: true, html5: true })
+        };
+
+        // Start BGM on first interaction
+        document.body.addEventListener('click', () => { if(!sfx.bgm.playing()) sfx.bgm.play(); }, {once: true});
+
+        initQuestion();
+
+        function initQuestion() {
+            if (currentIndex >= questions.length) {
+                showFinalResults();
+                return;
+            }
+
+            const q = questions[currentIndex];
+            isPaused = false;
+            selectedElements = [];
+            
+            document.getElementById('current-idx').innerText = currentIndex + 1;
+            document.getElementById('total-idx').innerText = questions.length;
+            document.getElementById('difficulty-badge').innerText = q.difficulty;
+            document.getElementById('question-text').innerText = q.question_text;
+
+            if (q.input_mode === 'Periodic') {
+                setupPeriodicUI(q);
+            } else {
+                setupStandardUI(q);
+            }
+
+            startTimer(q.time_limit || 15);
+        }
+
+        function setupStandardUI(q) {
+            document.getElementById('mcq-container').classList.remove('hidden');
+            document.getElementById('periodic-container').classList.add('hidden');
+            document.getElementById('opt-a').innerText = q.option_a;
+            document.getElementById('opt-b').innerText = q.option_b;
+            document.getElementById('opt-c').innerText = q.option_c || '---';
+            document.getElementById('opt-d').innerText = q.option_d || '---';
+        }
+
+        function setupPeriodicUI(q) {
+            document.getElementById('mcq-container').classList.add('hidden');
+            document.getElementById('periodic-container').classList.remove('hidden');
+            const slots = document.getElementById('formula-slots');
+            slots.innerHTML = '';
+            const requiredCount = q.answers.split(',').length;
+            for (let i = 0; i < requiredCount; i++) {
+                slots.innerHTML += `<div class="w-16 h-20 border-2 border-dashed border-cyan-500/50 rounded-xl flex items-center justify-center text-3xl font-black text-cyan-400">?</div>`;
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (isPaused) return;
+            handleInput(e.key);
+        });
+
+        function handleInput(key) {
+            sfx.btn.play();
+            const q = questions[currentIndex];
+            const correctAnswers = q.answers.split(',');
+
+            if (q.input_mode === 'Standard') {
+                const keyMap = { "1": "A", "2": "B", "3": "C", "4": "D" };
+                const userAnswer = keyMap[key];
+                if (userAnswer) validateAnswer(userAnswer === correctAnswers[0]);
+            } else {
+                if (['1','2','3','4'].includes(key)) return;
+                selectedElements.push(key);
+                updateSlots();
+                if (selectedElements.length === correctAnswers.length) {
+                    validateAnswer(selectedElements.join(',') === q.answers);
+                }
+            }
+        }
+
+        function updateSlots() {
+            const slots = document.getElementById('formula-slots').children;
+            selectedElements.forEach((el, i) => {
+                if (slots[i]) {
+                    slots[i].innerText = el;
+                    slots[i].classList.replace('border-dashed', 'border-solid');
+                    slots[i].classList.add('bg-cyan-500/20', 'animate__animated', 'animate__bounceIn');
+                }
+            });
+        }
+
+        function validateAnswer(isCorrect) {
+            if (isPaused) return; // Iwas double-click/input habang may feedback
+            isPaused = true;
+            clearInterval(timer);
+            sfx.timerLow.stop();
+            
+            const card = document.getElementById('game-card');
+            const q = questions[currentIndex];
+
+            if (isCorrect) {
+                // --- ITO ANG NAWALA NA LINE ---
+                currentScore++; 
+                // ------------------------------
+
+                sfx.correct.play();
+                card.classList.add('correct-glow');
+                comboCount++;
+                
+                // Confetti burst
+                confetti({ 
+                    particleCount: 100, 
+                    spread: 70, 
+                    origin: { y: 0.6 }, 
+                    colors: ['#06b6d4', '#ffffff'] 
+                });
+                
+                if (comboCount >= 3) showCombo(comboCount);
+                
+                const multiplier = comboCount >= 3 ? 1.5 : 1.0;
+                const gained = Math.round(((q.base_exp || 100) + (timeLeft * 20)) * multiplier);
+                
+                updateExpDisplay(gained);
+                showFeedback(true, gained, q);
+            } else {
+                // Wrong answer logic
+                sfx.wrong.play();
+                sfx.glitch.play();
+                comboCount = 0; // Reset combo
+                document.body.classList.add('glitch-active');
+                card.classList.add('wrong-glow', 'animate__animated', 'animate__shakeX');
+                
+                setTimeout(() => document.body.classList.remove('glitch-active'), 400);
+                showFeedback(false, 0, q);
+            }
+        }
+
+        function updateExpDisplay(gained) {
+            let start = totalExp;
+            totalExp += gained;
+            const display = document.getElementById('exp-display');
+            let interval = setInterval(() => {
+                if (start >= totalExp) clearInterval(interval);
+                else {
+                    start += 5;
+                    display.innerText = start > totalExp ? totalExp : start;
+                }
+            }, 30);
+        }
+
+        function showCombo(count) {
+            const tag = document.getElementById('combo-tag');
+            document.getElementById('combo-val').innerText = count;
+            tag.classList.remove('hidden');
+            setTimeout(() => tag.classList.add('hidden'), 1200);
+        }
+
+        function showFeedback(isCorrect, gained, q) {
+            const overlay = document.createElement('div');
+            overlay.className = `absolute inset-0 flex flex-col items-center justify-center rounded-[3rem] backdrop-blur-xl z-50 animate__animated animate__zoomIn`;
+            const correctText = q.input_mode === 'Standard' ? q.answers : q.answers.replace(/,/g, '');
+
+            overlay.innerHTML = `
+                <div class="text-center">
+                    <i class="fas ${isCorrect ? 'fa-check-circle text-green-500' : 'fa-skull text-red-500'} text-9xl mb-4"></i>
+                    <h2 class="text-5xl font-black uppercase italic italic ${isCorrect ? 'text-green-400' : 'text-red-500'}">${isCorrect ? 'Correct!' : 'System Fault'}</h2>
+                    ${isCorrect ? `<p class="text-2xl font-bold">+${gained} EXP Gained</p>` : `<p class="mt-4 text-xs tracking-widest text-slate-400 uppercase">Correct Sequence:</p><div class="bg-white text-black text-3xl px-8 py-2 rounded-xl font-black mt-2">${correctText}</div>`}
+                </div>
+            `;
+            document.getElementById('game-card').appendChild(overlay);
+
+            setTimeout(() => {
+                overlay.remove();
+                document.getElementById('game-card').classList.remove('correct-glow', 'wrong-glow', 'animate__shakeX');
+                currentIndex++;
+                initQuestion();
+            }, 2500);
+        }
+
+        function startTimer(seconds) {
+            clearInterval(timer);
+            timeLeft = seconds;
+            const bar = document.getElementById('timer-bar');
+            const display = document.getElementById('timer-display');
+            
+            timer = setInterval(() => {
+                timeLeft--;
+                display.innerText = timeLeft;
+                if(timeLeft === 5) sfx.timerLow.play();
+                const offset = 301.5 - (timeLeft / seconds) * 301.5;
+                bar.style.strokeDashoffset = offset;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    validateAnswer(false);
+                }
+            }, 1000);
+        }
+
+        async function showFinalResults() {
+            sfx.bgm.fade(0.15, 0, 1000);
+            sfx.complete.play();
+            const aid = "<%= assessmentId %>"; 
+            const uid = "<%= user.user_id %>";
+
+            const response = await fetch('/arcade/submit-results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: uid, assessmentId: aid, score: currentScore, totalItems: questions.length, expGained: totalExp })
+            });
+            const result = await response.json();
+
+            document.body.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center bg-slate-950 p-10 w-full animate__animated animate__fadeIn">
+                    <div class="max-w-4xl w-full bg-slate-900 border-4 border-yellow-500/30 p-16 rounded-[4rem] text-center shadow-2xl">
+                        <h1 class="text-7xl font-black italic text-yellow-500 mb-8 neon-text-yellow animate__animated animate__tada">MISSION COMPLETE</h1>
+                        <div class="grid grid-cols-2 gap-8 mb-12">
+                            <div class="bg-black/40 p-8 rounded-3xl border border-slate-700">
+                                <p class="text-xs text-slate-500 uppercase font-black">Accuracy</p>
+                                <p class="text-5xl font-black">${currentScore} / ${questions.length}</p>
+                            </div>
+                            <div class="bg-black/40 p-8 rounded-3xl border border-slate-700">
+                                <p class="text-xs text-slate-500 uppercase font-black">Final EXP</p>
+                                <p class="text-5xl font-black text-cyan-400">${totalExp}</p>
+                            </div>
+                        </div>
+                        <p class="text-2xl font-bold italic text-white mb-10">"You surpassed ${result.surpassedCount} other students!"</p>
+                        <button onclick="window.location.href='/arcade/standby'" class="px-12 py-5 bg-white text-slate-950 font-black rounded-2xl hover:bg-cyan-500 transition-colors uppercase tracking-widest">Return to Base</button>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => window.location.href = '/arcade/standby', 15000);
+        }
+    </script>
+</body>
+</html>

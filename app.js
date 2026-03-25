@@ -13,7 +13,7 @@ const path = require('path');
 const QRCode = require('qrcode');
 const fs = require('fs');
 
-// akjdhsadsgdj
+// akjdhsadsgd
 // ---------------- PROFILE PICS UPLOAD ----------------
 
 // 1️⃣ Setup Storage

@@ -1,4 +1,4 @@
-require('dotenv').config();
+//require('dotenv').config();
 const express = require('express');
 const db = require('./db'); // Ito 'yung ginawa nating db.js kanina
 const crypto = require('crypto'); // Built-in sa Node.js para sa tokens

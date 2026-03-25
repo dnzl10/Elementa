@@ -1,4 +1,4 @@
-//require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const db = require('./db'); // Ito 'yung ginawa nating db.js kanina
 const crypto = require('crypto'); // Built-in sa Node.js para sa tokens
@@ -13,7 +13,7 @@ const path = require('path');
 const QRCode = require('qrcode');
 const fs = require('fs');
 
-
+// shet
 // ---------------- PROFILE PICS UPLOAD ----------------
 
 // 1️⃣ Setup Storage
